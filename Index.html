@@ -1,922 +1,245 @@
-// ========================================
-// Global Variables & State Management
-// ========================================
-
-let currentUser = null;
-let allTools = [];
-let allCategories = [];
-let toolsUsageData = {};
-let recentTools = [];
-let favoriteTools = [];
-let currentTheme = 'dark';
-let channelsData = [];
-let weeklySchedule = [];
-
-// ========================================
-// Initialize App
-// ========================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadFromLocalStorage();
-    checkLoginStatus();
-    initializeEventListeners();
-    updateLastOpenTime();
-});
-
-// ========================================
-// Local Storage Management
-// ========================================
-
-function loadFromLocalStorage() {
-    currentUser = JSON.parse(localStorage.getItem('rng_user')) || null;
-    toolsUsageData = JSON.parse(localStorage.getItem('rng_tools_usage')) || {};
-    recentTools = JSON.parse(localStorage.getItem('rng_recent_tools')) || [];
-    favoriteTools = JSON.parse(localStorage.getItem('rng_favorites')) || [];
-    currentTheme = localStorage.getItem('rng_theme') || 'dark';
-    
-    // Load custom data
-    const customTools = JSON.parse(localStorage.getItem('rng_custom_tools')) || [];
-    const customCategories = JSON.parse(localStorage.getItem('rng_custom_categories')) || [];
-    
-    // Merge with config
-    allTools = [...CONFIG.tools, ...customTools];
-    allCategories = [...CONFIG.categories, ...customCategories];
-    channelsData = JSON.parse(localStorage.getItem('rng_channels')) || CONFIG.channels;
-    weeklySchedule = JSON.parse(localStorage.getItem('rng_schedule')) || CONFIG.weeklySchedule;
+<!DOCTYPE html>
+<html lang="bn" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CreatorHub Pro — All-in-One Toolkit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<style>
+/* ============================================
+   CreatorHub Pro — Embedded CSS
+   Green Glassmorphism Dark Theme
+   ============================================ */
+:root {
+  --green-primary: #00ff88;
+  --green-dim: #00cc6a;
+  --green-glow: rgba(0,255,136,0.25);
+  --green-glow-strong: rgba(0,255,136,0.45);
+  --green-subtle: rgba(0,255,136,0.08);
+  --bg-base: #060d0a;
+  --bg-card: rgba(10,26,18,0.65);
+  --bg-card-hover: rgba(15,38,26,0.75);
+  --bg-glass: rgba(255,255,255,0.04);
+  --bg-glass-hover: rgba(255,255,255,0.07);
+  --bg-input: rgba(0,0,0,0.3);
+  --border-glass: rgba(255,255,255,0.12);
+  --border-green: rgba(0,255,136,0.3);
+  --text-primary: #e8f5ee;
+  --text-secondary: #8ab09a;
+  --text-muted: #4a7060;
+  --text-accent: #00ff88;
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 30px rgba(0,255,136,0.15);
+  --shadow-hover: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,136,0.2);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --header-h: 68px;
+  --sidebar-w: 220px;
+  --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --font-en: 'Space Grotesk', sans-serif;
+  --font-bn: 'Hind Siliguri', sans-serif;
 }
-
-function saveToLocalStorage() {
-    localStorage.setItem('rng_user', JSON.stringify(currentUser));
-    localStorage.setItem('rng_tools_usage', JSON.stringify(toolsUsageData));
-    localStorage.setItem('rng_recent_tools', JSON.stringify(recentTools));
-    localStorage.setItem('rng_favorites', JSON.stringify(favoriteTools));
-    localStorage.setItem('rng_theme', currentTheme);
-    localStorage.setItem('rng_channels', JSON.stringify(channelsData));
-    localStorage.setItem('rng_schedule', JSON.stringify(weeklySchedule));
+[data-theme="light"] {
+  --bg-base: #f0faf5;
+  --bg-card: rgba(255,255,255,0.75);
+  --bg-card-hover: rgba(255,255,255,0.9);
+  --bg-glass: rgba(0,0,0,0.03);
+  --bg-glass-hover: rgba(0,0,0,0.06);
+  --bg-input: rgba(0,0,0,0.06);
+  --border-glass: rgba(0,0,0,0.1);
+  --border-green: rgba(0,180,90,0.4);
+  --text-primary: #0a2018;
+  --text-secondary: #2d6045;
+  --text-muted: #6a9a7a;
+  --text-accent: #00aa55;
+  --green-primary: #00aa55;
+  --green-dim: #008844;
+  --green-glow: rgba(0,170,85,0.2);
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.1);
+  --shadow-glow: 0 0 20px rgba(0,170,85,0.1);
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-bn),var(--font-en);background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden;line-height:1.6;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--green-dim);border-radius:10px;}
+::-webkit-scrollbar-thumb:hover{background:var(--green-primary);}
+.hidden{display:none!important;}
+a{text-decoration:none;color:inherit;}
+input,select,button,textarea{font-family:inherit;}
 
-function updateLastOpenTime() {
-    const now = new Date();
-    localStorage.setItem('rng_last_open', now.toISOString());
-    displayLastOpenTime();
-}
+/* Glass */
+.glass-card{background:var(--bg-card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-glass);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);}
+.glass-inner{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:14px 18px;}
 
-function displayLastOpenTime() {
-    const lastOpen = localStorage.getItem('rng_last_open');
-    if (lastOpen) {
-        const lastDate = new Date(lastOpen);
-        const now = new Date();
-        const diff = Math.floor((now - lastDate) / 60000); // minutes
-        
-        let timeText = 'এইমাত্র';
-        if (diff > 60) {
-            const hours = Math.floor(diff / 60);
-            timeText = `${hours} ঘন্টা আগে`;
-        } else if (diff > 1) {
-            timeText = `${diff} মিনিট আগে`;
-        }
-        
-        document.getElementById('lastOpen').textContent = `শেষ ব্যবহার: ${timeText}`;
-    }
-}
+/* Orbs */
+.bg-orbs,.login-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;animation:floatOrb 12s ease-in-out infinite;}
+.orb-1{width:500px;height:500px;background:radial-gradient(circle,#00ff88,transparent);top:-150px;left:-100px;animation-duration:14s;}
+.orb-2{width:400px;height:400px;background:radial-gradient(circle,#00cc6a,transparent);bottom:-100px;right:-80px;animation-duration:18s;animation-delay:-6s;}
+.orb-3{width:300px;height:300px;background:radial-gradient(circle,#004422,transparent);top:50%;left:50%;animation-duration:20s;animation-delay:-3s;opacity:.2;}
+.orb-4{width:250px;height:250px;background:radial-gradient(circle,#00ff88,transparent);top:30%;right:10%;animation-duration:16s;animation-delay:-9s;opacity:.18;}
+@keyframes floatOrb{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(40px,-50px) scale(1.05);}66%{transform:translate(-30px,30px) scale(.95);}}
 
-// ========================================
-// Login System
-// ========================================
+/* Login */
+.login-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--bg-base);}
+.login-card{position:relative;z-index:1;width:90%;max-width:420px;padding:48px 40px;text-align:center;border-color:var(--border-green);box-shadow:var(--shadow-card),var(--shadow-glow);animation:fadeSlideUp .6s ease forwards;}
+.login-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--green-primary),var(--green-dim));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:30px;color:#000;box-shadow:0 8px 24px var(--green-glow-strong);}
+.login-title{font-family:var(--font-en);font-size:28px;font-weight:700;margin-bottom:8px;}
+.login-title span{color:var(--green-primary);}
+.login-sub{font-size:15px;color:var(--text-secondary);margin-bottom:6px;}
+.login-desc{font-size:13px;color:var(--text-muted);margin-bottom:28px;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-md);color:var(--text-primary);font-size:15px;font-weight:600;cursor:pointer;transition:var(--transition);}
+.google-btn:hover{background:rgba(255,255,255,.18);border-color:var(--border-green);box-shadow:0 0 20px var(--green-glow);transform:translateY(-2px);}
+.login-note{font-size:12px;color:var(--text-muted);margin-top:16px;}
+.login-note i{color:var(--green-primary);margin-right:4px;}
 
-function checkLoginStatus() {
-    const loginScreen = document.getElementById('loginScreen');
-    const mainApp = document.getElementById('mainApp');
-    
-    if (currentUser) {
-        loginScreen.classList.add('hidden');
-        mainApp.classList.remove('hidden');
-        displayUserInfo();
-        initializeApp();
-    } else {
-        loginScreen.classList.remove('hidden');
-        mainApp.classList.add('hidden');
-    }
-}
+/* Main App */
+.main-app{position:relative;min-height:100vh;}
+.sticky-header{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--header-h);border-radius:0;border-left:0;border-right:0;border-top:0;border-bottom:1px solid var(--border-glass);padding:0 20px;display:flex;align-items:center;gap:16px;}
+.header-left{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.header-center{flex:1;max-width:520px;margin:0 auto;}
+.header-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.sidebar-toggle{width:38px;height:38px;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:var(--transition);}
+.sidebar-toggle:hover{background:var(--green-subtle);color:var(--green-primary);border-color:var(--border-green);}
+.brand{display:flex;align-items:center;gap:8px;}
+.brand-icon{font-size:20px;color:var(--green-primary);}
+.brand-name{font-family:var(--font-en);font-size:16px;font-weight:700;white-space:nowrap;}
+.brand-name span{color:var(--green-primary);}
+.search-wrap{position:relative;display:flex;align-items:center;}
+.search-icon{position:absolute;left:14px;color:var(--text-muted);font-size:14px;pointer-events:none;}
+.search-input{width:100%;padding:10px 40px 10px 38px;background:var(--bg-input);border:1px solid var(--border-glass);border-radius:50px;color:var(--text-primary);font-size:14px;transition:var(--transition);outline:none;}
+.search-input:focus{border-color:var(--border-green);box-shadow:0 0 0 3px var(--green-glow);}
+.search-input::placeholder{color:var(--text-muted);}
+.search-clear{position:absolute;right:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;}
+.last-used-info{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);white-space:nowrap;}
+.last-used-info i{color:var(--green-primary);}
+.theme-toggle{width:38px;height:38px;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:50%;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:var(--transition);}
+.theme-toggle:hover{background:var(--green-subtle);color:var(--green-primary);}
+.user-profile{position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;}
+.user-avatar{width:36px;height:36px;border-radius:50%;border:2px solid var(--green-primary);object-fit:cover;}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
+.profile-dropdown{position:absolute;top:calc(100% + 12px);right:0;width:240px;padding:16px;z-index:200;display:none;animation:fadeSlideDown .2s ease;}
+.user-profile:hover .profile-dropdown{display:block;}
+.profile-info{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.dropdown-avatar{width:42px;height:42px;border-radius:50%;border:2px solid var(--green-primary);}
+.dropdown-name{font-weight:600;font-size:14px;}
+.dropdown-email{font-size:11px;color:var(--text-muted);}
+.dropdown-divider{border:none;border-top:1px solid var(--border-glass);margin:8px 0;}
+.dropdown-btn{width:100%;padding:8px 12px;background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.2);border-radius:var(--radius-sm);color:#ff6b6b;cursor:pointer;font-size:13px;transition:var(--transition);}
+.dropdown-btn:hover{background:rgba(255,60,60,.2);}
 
-function initializeEventListeners() {
-    // Login button
-    document.getElementById('googleLoginBtn')?.addEventListener('click', handleGoogleLogin);
-    
-    // Logout button
-    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
-    
-    // Sidebar toggle
-    document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
-    document.getElementById('closeSidebar')?.addEventListener('click', toggleSidebar);
-    
-    // Theme toggle
-    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-    
-    // Search
-    document.getElementById('searchInput')?.addEventListener('input', handleSearch);
-    
-    // Quick access tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
-    });
-    
-    // Modal close
-    document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.addEventListener('click', closeModal);
-    });
-    
-    // Manage buttons
-    document.querySelectorAll('.manage-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const action = e.currentTarget.dataset.action;
-            handleManageAction(action);
-        });
-    });
-    
-    // Click outside sidebar to close
-    document.addEventListener('click', (e) => {
-        const sidebar = document.getElementById('sidebar');
-        const toggle = document.getElementById('sidebarToggle');
-        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-            sidebar.classList.remove('active');
-        }
-    });
-}
+/* Layout */
+.app-layout{display:flex;padding-top:var(--header-h);min-height:100vh;position:relative;z-index:1;}
+.sidebar{position:fixed;top:var(--header-h);left:0;width:var(--sidebar-w);height:calc(100vh - var(--header-h));overflow-y:auto;border-radius:0;border-top:0;border-left:0;border-bottom:0;border-right:1px solid var(--border-glass);padding:16px 10px;z-index:50;transition:transform .3s ease;}
+.sidebar.collapsed{transform:translateX(-100%);}
+.sidebar-nav{display:flex;flex-direction:column;gap:3px;}
+.sidebar-section-label{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:1px;padding:8px 10px 4px;}
+.sidebar-divider{border:none;border-top:1px solid var(--border-glass);margin:6px 0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:none;border:1px solid transparent;border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;font-size:13px;font-weight:500;text-align:left;width:100%;transition:var(--transition);}
+.nav-item i{width:18px;text-align:center;flex-shrink:0;}
+.nav-item:hover{background:var(--green-subtle);color:var(--text-primary);border-color:var(--border-green);}
+.nav-item.active{background:var(--green-subtle);color:var(--green-primary);border-color:var(--border-green);font-weight:600;}
+.main-content{flex:1;margin-left:var(--sidebar-w);padding:24px 24px 40px;transition:margin-left .3s ease;}
+.main-content.expanded{margin-left:0;}
 
-function handleGoogleLogin() {
-    // Simulated Google Login
-    const simulatedUser = {
-        name: 'RNG Creator',
-        email: 'rngcreator@gmail.com',
-        photo: 'https://ui-avatars.com/api/?name=RNG+Creator&background=2ecc71&color=fff&size=100'
-    };
-    
-    currentUser = simulatedUser;
-    saveToLocalStorage();
-    checkLoginStatus();
-    showNotification('সফলভাবে লগইন হয়েছে!', 'success');
-}
+/* Dashboard Stats */
+.dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{padding:16px 18px;display:flex;align-items:center;gap:14px;transition:var(--transition);}
+.stat-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);}
+.stat-icon{font-size:22px;color:var(--green-primary);flex-shrink:0;}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+.stat-value{font-size:14px;font-weight:700;color:var(--text-primary);}
 
-function handleLogout() {
-    if (confirm('আপনি কি লগআউট করতে চান?')) {
-        currentUser = null;
-        saveToLocalStorage();
-        checkLoginStatus();
-        showNotification('লগআউট সম্পন্ন হয়েছে', 'info');
-    }
-}
+/* Content Header */
+.content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.category-title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.category-title i{color:var(--green-primary);}
+.tool-count{font-size:13px;color:var(--text-muted);}
+.search-notice{background:var(--green-subtle);border:1px solid var(--border-green);border-radius:var(--radius-sm);padding:10px 16px;font-size:13px;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 
-function displayUserInfo() {
-    if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userPhoto').src = currentUser.photo;
-    }
-}
+/* Tools Grid */
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.tool-card{position:relative;padding:20px 16px;cursor:pointer;transition:var(--transition);display:flex;flex-direction:column;align-items:flex-start;gap:10px;animation:cardFadeIn .4s ease both;background:var(--bg-card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-glass);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);overflow:hidden;}
+.tool-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--green-subtle) 0%,transparent 60%);opacity:0;transition:opacity .3s;border-radius:inherit;}
+.tool-card:hover{border-color:var(--border-green);box-shadow:var(--shadow-hover);transform:translateY(-4px);}
+.tool-card:hover::before{opacity:1;}
+.tool-card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative;z-index:1;}
+.tool-card-name{font-size:13px;font-weight:600;line-height:1.4;color:var(--text-primary);position:relative;z-index:1;}
+.tool-card-desc{font-size:11px;color:var(--text-muted);line-height:1.5;position:relative;z-index:1;}
+.tool-card-tag{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;position:relative;z-index:1;}
+.tag-builtin{background:rgba(0,255,136,.15);color:var(--green-primary);border:1px solid var(--border-green);}
+.tag-external{background:rgba(80,140,255,.12);color:#80aaff;border:1px solid rgba(80,140,255,.25);}
+.fav-btn{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;z-index:2;transition:var(--transition);padding:4px;border-radius:6px;}
+.fav-btn:hover{color:#ffc107;background:rgba(255,193,7,.1);}
+.fav-btn.active{color:#ffc107;}
+.freq-badge{position:absolute;bottom:10px;right:12px;font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:3px;}
+.no-results{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.no-results i{font-size:48px;margin-bottom:16px;display:block;}
 
-// ========================================
-// Initialize App Components
-// ========================================
+/* Icon Colors */
+.icon-green{background:rgba(0,255,136,.12);color:var(--green-primary);}
+.icon-blue{background:rgba(80,140,255,.12);color:#80aaff;}
+.icon-red{background:rgba(255,80,80,.12);color:#ff8080;}
+.icon-orange{background:rgba(255,165,0,.12);color:#ffaa44;}
+.icon-purple{background:rgba(160,90,255,.12);color:#c090ff;}
+.icon-cyan{background:rgba(0,220,220,.12);color:#60dddd;}
+.icon-pink{background:rgba(255,100,180,.12);color:#ff80cc;}
+.icon-yellow{background:rgba(255,220,0,.12);color:#ffdd44;}
+.icon-teal{background:rgba(0,180,160,.12);color:#44ccbb);}
 
-function initializeApp() {
-    renderSidebarCategories();
-    renderYouTubeChannels();
-    renderWeeklySchedule();
-    renderQuickAccess('recent');
-    renderAllTools();
-    applyTheme();
-}
+/* Modals */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease;}
+.modal{position:relative;width:100%;max-width:440px;padding:32px 28px;border-color:var(--border-green);box-shadow:var(--shadow-hover),0 0 40px var(--green-glow);animation:fadeSlideUp .3s ease;max-height:90vh;overflow-y:auto;}
+.modal-wide{max-width:600px;}
+.modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:8px;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:var(--transition);}
+.modal-close:hover{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3);}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.modal-title i{color:var(--green-primary);}
+.modal-body{display:flex;flex-direction:column;gap:12px;}
+.modal-label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.modal-input{width:100%;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border-glass);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;outline:none;transition:var(--transition);}
+.modal-input:focus{border-color:var(--border-green);box-shadow:0 0 0 3px var(--green-glow);}
+.modal-input::placeholder{color:var(--text-muted);}
+.modal-textarea{width:100%;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border-glass);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;outline:none;transition:var(--transition);resize:vertical;min-height:100px;}
+.modal-textarea:focus{border-color:var(--border-green);box-shadow:0 0 0 3px var(--green-glow);}
+.modal-select{width:100%;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border-glass);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;outline:none;cursor:pointer;}
+.modal-btn{padding:12px 20px;background:linear-gradient(135deg,var(--green-primary),var(--green-dim));border:none;border-radius:var(--radius-sm);color:#000;font-size:14px;font-weight:700;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:8px;}
+.modal-btn:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 16px var(--green-glow-strong);}
+.modal-result{padding:16px;background:var(--green-subtle);border:1px solid var(--border-green);border-radius:var(--radius-sm);font-size:20px;font-weight:700;color:var(--green-primary);text-align:center;animation:fadeSlideUp .3s ease;}
+.result-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;text-align:left;}
+.result-copy-row{display:flex;align-items:center;gap:8px;background:var(--bg-input);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:8px 12px;}
+.result-text{flex:1;font-size:13px;word-break:break-all;color:var(--green-primary);}
+.copy-btn{padding:6px 10px;background:var(--green-subtle);border:1px solid var(--border-green);border-radius:6px;color:var(--green-primary);cursor:pointer;font-size:13px;transition:var(--transition);flex-shrink:0;}
+.copy-btn:hover{background:var(--green-glow);}
+.short-note{font-size:11px;color:var(--text-muted);margin-top:8px;text-align:left;}
+.ext-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(80,140,255,.1);border:1px solid rgba(80,140,255,.25);border-radius:6px;color:#80aaff;font-size:12px;cursor:pointer;transition:var(--transition);margin-top:8px;}
+.ext-btn:hover{background:rgba(80,140,255,.2);}
 
-function renderSidebarCategories() {
-    const nav = document.getElementById('categoryNav');
-    nav.innerHTML = '';
+/* Specific Tool Styles */
+.age-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;}
+.age-box{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:12px 8px;}
+.age-box span{font-size:28px;font-weight:700;color:var(--green-primary);display:block;}
+.age-box p{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.birthday-note{font-size:13px;color:var(--text-secondary);text-align:center;margin-top:10px;}
+.percent-tabs{display:flex;gap:6px;margin-bottom:4px;}
+.percent-tab{flex:1;padding:8px 4px;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:600;transition:var(--transition);}
+.percent-tab.active{background:var(--green-subtle);border-color:var(--border-green);color:var(--green-primary);}
+.percent-panel{display:none;flex-direction:column;gap:10px;}
+.percent-panel.active{display:flex;}
+.pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;}
+.pl-box{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:14px 8px;}
+.pl-box span{font-size:22px;font-weight:700;display:block;color:var(--green-primary);}
+.pl-box p{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.tz-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.tz-box{text-align:center;}
+.tz-label{font-size:13px;color:var(--text-secondary);margin-bottom:6px;}
+.tz-time{font-family:var(--font-en);font-size:22px;font-weight:700;color:var(--green-primary);letter-spacing:1px;}
+.yt-cpm-row{display:flex;flex-direction:column;gap:6px;}
     
-    allCategories.forEach(category => {
-        const navItem = document.createElement('a');
-        navItem.className = 'nav-item';
-        navItem.href = `#${category.id}`;
-        navItem.innerHTML = `
-            <i class="${category.icon}"></i>
-            <span>${category.name}</span>
-        `;
-        navItem.addEventListener('click', (e) => {
-            e.preventDefault();
-            scrollToCategory(category.id);
-            toggleSidebar();
-        });
-        nav.appendChild(navItem);
-    });
-}
-
-function scrollToCategory(categoryId) {
-    const element = document.getElementById(categoryId);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// ========================================
-// YouTube Channels with API Integration
-// ========================================
-
-async function renderYouTubeChannels() {
-    const container = document.getElementById('channelsContainer');
-    container.innerHTML = '<div class="spinner"></div>';
-    
-    try {
-        const channelsWithData = await Promise.all(
-            channelsData.map(async (channel) => {
-                const stats = await fetchYouTubeStats(channel.channelId);
-                return { ...channel, ...stats };
-            })
-        );
-        
-        container.innerHTML = '';
-        channelsWithData.forEach(channel => {
-            const card = createChannelCard(channel);
-            container.appendChild(card);
-        });
-    } catch (error) {
-        console.error('Error fetching channel data:', error);
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>চ্যানেল ডেটা লোড করতে সমস্যা হয়েছে</p>
-            </div>
-        `;
-    }
-}
-
-async function fetchYouTubeStats(channelId) {
-    try {
-        const response = await fetch(
-            `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${channelId}&key=${CONFIG.youtubeApiKey}`
-        );
-        
-        if (!response.ok) throw new Error('API Error');
-        
-        const data = await response.json();
-        if (data.items && data.items.length > 0) {
-            const stats = data.items[0].statistics;
-            const snippet = data.items[0].snippet;
-            return {
-                subscribers: formatNumber(stats.subscriberCount),
-                views: formatNumber(stats.viewCount),
-                videos: formatNumber(stats.videoCount),
-                thumbnail: snippet.thumbnails.high.url
-            };
-        }
-    } catch (error) {
-        console.error('YouTube API Error:', error);
-        return {
-            subscribers: 'N/A',
-            views: 'N/A',
-            videos: 'N/A',
-            thumbnail: 'https://via.placeholder.com/60'
-        };
-    }
-}
-
-function createChannelCard(channel) {
-    const card = document.createElement('div');
-    card.className = 'channel-card glass-effect';
-    card.innerHTML = `
-        <div class="channel-header">
-            <img src="${channel.thumbnail}" alt="${channel.name}" class="channel-logo">
-            <div class="channel-info">
-                <h3>${channel.name}</h3>
-                <span class="verified"><i class="fas fa-check-circle"></i> Verified</span>
-            </div>
-        </div>
-        <div class="channel-stats">
-            <div class="stat-item">
-                <span class="stat-label">সাবস্ক্রাইবার</span>
-                <span class="stat-value">${channel.subscribers}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">মোট ভিউ</span>
-                <span class="stat-value">${channel.views}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">ভিডিও সংখ্যা</span>
-                <span class="stat-value">${channel.videos}</span>
-            </div>
-        </div>
-    `;
-    
-    card.addEventListener('click', () => openChannelModal(channel));
-    return card;
-}
-
-function openChannelModal(channel) {
-    const modal = document.getElementById('modalContainer');
-    const modalBody = document.getElementById('modalBody');
-    
-    modalBody.innerHTML = `
-        <h2><i class="fab fa-youtube"></i> ${channel.name}</h2>
-        <div class="channel-modal-content">
-            <img src="${channel.thumbnail}" style="width: 150px; border-radius: 50%; margin: 20px auto; display: block;">
-            <div class="stat-item">
-                <span class="stat-label">চ্যানেল URL</span>
-                <span class="stat-value">${channel.url}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">সাবস্ক্রাইবার</span>
-                <span class="stat-value">${channel.subscribers}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">মোট ভিউ</span>
-                <span class="stat-value">${channel.views}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">ভিডিও</span>
-                <span class="stat-value">${channel.videos}</span>
-            </div>
-            <a href="${channel.url}" target="_blank" class="submit-btn" style="margin-top: 20px; display: block; text-align: center; text-decoration: none;">
-                <i class="fas fa-external-link-alt"></i> চ্যানেলে যান
-            </a>
-        </div>
-    `;
-    
-    modal.classList.add('active');
-}
-
-// ========================================
-// Weekly Schedule
-// ========================================
-
-function renderWeeklySchedule() {
-    const container = document.getElementById('scheduleContainer');
-    const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
-    const tomorrow = (today + 1) % 7;
-    
-    container.innerHTML = '';
-    weeklySchedule.forEach((day, index) => {
-        const card = document.createElement('div');
-        card.className = 'schedule-card glass-effect';
-        
-        // Highlight today and tomorrow
-        if (index === today) card.classList.add('today');
-        if (index === tomorrow) card.classList.add('tomorrow');
-        
-        const scheduleHTML = day.schedule.map(item => `
-            <div class="schedule-details">
-                <div class="schedule-channel">${item.channel}</div>
-                <span class="schedule-type ${item.type === 'বন্ধ' ? 'off' : ''}">${item.type}</span>
-            </div>
-        `).join('');
-        
-        card.innerHTML = `
-            <div class="day-name">${day.day}</div>
-            ${scheduleHTML}
-        `;
-        
-        container.appendChild(card);
-    });
-}
-
-// ========================================
-// Quick Access (Recent, Most Used, Favorites)
-// ========================================
-
-function renderQuickAccess(tab) {
-    const container = document.getElementById('quickAccessContent');
-    let tools = [];
-    
-    switch(tab) {
-        case 'recent':
-            tools = recentTools.slice(0, 6).map(id => allTools.find(t => t.id === id)).filter(Boolean);
-            break;
-        case 'mostUsed':
-            tools = Object.entries(toolsUsageData)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 6)
-                .map(([id]) => allTools.find(t => t.id === id))
-                .filter(Boolean);
-            break;
-        case 'favorites':
-            tools = favoriteTools.map(id => allTools.find(t => t.id === id)).filter(Boolean);
-            break;
-    }
-    
-    if (tools.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                <p>কোনো টুল নেই</p>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = '';
-    tools.forEach(tool => {
-        const card = createToolCard(tool);
-        container.appendChild(card);
-    });
-}
-
-function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tab);
-    });
-    renderQuickAccess(tab);
-}
-
-// ========================================
-// Render All Tools by Category
-// ========================================
-
-function renderAllTools() {
-    const container = document.getElementById('toolsContainer');
-    container.innerHTML = '';
-    
-    allCategories.forEach(category => {
-        const categoryTools = allTools.filter(tool => tool.category === category.id);
-        
-        if (categoryTools.length === 0) return;
-        
-        const section = document.createElement('section');
-        section.className = 'tools-category';
-        section.id = category.id;
-        
-        section.innerHTML = `
-            <h2 class="category-title">
-                <i class="${category.icon}"></i> ${category.name}
-            </h2>
-            <div class="tools-grid" id="grid-${category.id}"></div>
-        `;
-        
-        container.appendChild(section);
-        
-        const grid = document.getElementById(`grid-${category.id}`);
-        categoryTools.forEach(tool => {
-            const card = createToolCard(tool);
-            grid.appendChild(card);
-        });
-    });
-}
-
-function createToolCard(tool) {
-    const card = document.createElement('div');
-    card.className = 'tool-card glass-effect';
-    
-    if (!currentUser) {
-        card.classList.add('locked');
-    }
-    
-    const isFavorite = favoriteTools.includes(tool.id);
-    
-    card.innerHTML = `
-        <div class="tool-header">
-            <div class="tool-icon">
-                <i class="${tool.icon}"></i>
-            </div>
-            <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-tool-id="${tool.id}">
-                <i class="fas fa-star"></i>
-            </button>
-        </div>
-        <div class="tool-name">${tool.name}</div>
-        <div class="tool-description">${tool.description}</div>
-        <span class="tool-type-badge ${tool.type}">${tool.type === 'builtin' ? 'Built-in' : 'External'}</span>
-        ${!currentUser ? '<div class="lock-overlay"><i class="fas fa-lock"></i></div>' : ''}
-    `;
-    
-    // Favorite button
-    const favBtn = card.querySelector('.favorite-btn');
-    favBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFavorite(tool.id);
-    });
-    
-    // Tool click
-    card.addEventListener('click', () => {
-        if (!currentUser) {
-            showNotification('দয়া করে লগইন করুন', 'warning');
-            return;
-        }
-        handleToolClick(tool);
-    });
-    
-    return card;
-}
-
-function toggleFavorite(toolId) {
-    const index = favoriteTools.indexOf(toolId);
-    if (index > -1) {
-        favoriteTools.splice(index, 1);
-    } else {
-        favoriteTools.push(toolId);
-    }
-    saveToLocalStorage();
-    renderAllTools();
-    renderQuickAccess('favorites');
-}
-
-// ========================================
-// Handle Tool Click
-// ========================================
-
-function handleToolClick(tool) {
-    // Update usage stats
-    toolsUsageData[tool.id] = (toolsUsageData[tool.id] || 0) + 1;
-    
-    // Update recent tools
-    recentTools = recentTools.filter(id => id !== tool.id);
-    recentTools.unshift(tool.id);
-    recentTools = recentTools.slice(0, 10);
-    
-    saveToLocalStorage();
-    
-    if (tool.type === 'builtin') {
-        openBuiltinTool(tool);
-    } else if (tool.type === 'external') {
-        window.open(tool.url, '_blank');
-        showNotification(`${tool.name} খোলা হচ্ছে...`, 'info');
-    }
-}
-
-// ========================================
-// Built-in Tools
-// ========================================
-
-function openBuiltinTool(tool) {
-    const modal = document.getElementById('toolModal');
-    const modalBody = document.getElementById('toolModalBody');
-    
-    modalBody.innerHTML = getToolInterface(tool);
-    modal.classList.add('active');
-    
-    // Initialize tool-specific functionality
-    initializeToolFunctionality(tool.id);
-}
-
-function getToolInterface(tool) {
-    const interfaces = {
-        'profit-loss-calc': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-calculator"></i> লাভ/ক্ষতি ক্যালকুলেটর</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>ক্রয়মূল্য (টাকা)</label>
-                        <input type="number" id="costPrice" placeholder="উদাহরণ: 100">
-                    </div>
-                    <div class="form-group">
-                        <label>বিক্রয়মূল্য (টাকা)</label>
-                        <input type="number" id="sellingPrice" placeholder="উদাহরণ: 150">
-                    </div>
-                    <button class="submit-btn" onclick="calculateProfitLoss()">হিসাব করুন</button>
-                    <div id="profitLossResult" class="result-box hidden">
-                        <div class="result-label">ফলাফল</div>
-                        <div class="result-value" id="plAmount"></div>
-                        <div class="result-label" style="margin-top: 10px;">শতাংশ</div>
-                        <div class="result-value" id="plPercentage"></div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'percentage-calc': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-percent"></i> শতাংশ ক্যালকুলেটর</h2>
-                <div class="calculator-display">
-                    <div class="input-row">
-                        <div class="form-group">
-                            <label>সংখ্যা</label>
-                            <input type="number" id="percentNumber" placeholder="১০০">
-                        </div>
-                        <div class="form-group">
-                            <label>শতাংশ (%)</label>
-                            <input type="number" id="percentValue" placeholder="২০">
-                        </div>
-                    </div>
-                    <button class="submit-btn" onclick="calculatePercentage()">হিসাব করুন</button>
-                    <div id="percentResult" class="result-box hidden">
-                        <div class="result-label">উত্তর</div>
-                        <div class="result-value" id="percentAnswer"></div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'age-calc': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-birthday-cake"></i> বয়স ক্যালকুলেটর</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>জন্ম তারিখ</label>
-                        <input type="date" id="birthDate">
-                    </div>
-                    <button class="submit-btn" onclick="calculateAge()">বয়স বের করুন</button>
-                    <div id="ageResult" class="result-box hidden">
-                        <div class="result-label">আপনার বয়স</div>
-                        <div class="result-value" id="ageYears"></div>
-                        <div class="result-label" style="margin-top: 10px;">পরবর্তী জন্মদিন</div>
-                        <div class="result-value" style="font-size: 16px;" id="nextBirthday"></div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'youtube-earnings': `
-            <div class="tool-interface">
-                <h2><i class="fab fa-youtube"></i> ইউটিউব আয় ক্যালকুলেটর</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>দৈনিক ভিউ</label>
-                        <input type="number" id="dailyViews" placeholder="১০০০">
-                    </div>
-                    <div class="form-group">
-                        <label>CPM (প্রতি ১০০০ ভিউ আয়)</label>
-                        <input type="number" id="cpmRate" placeholder="২" value="2">
-                    </div>
-                    <button class="submit-btn" onclick="calculateYouTubeEarnings()">আয় হিসাব করুন</button>
-                    <div id="earningsResult" class="result-box hidden">
-                        <div class="result-label">দৈনিক আয়</div>
-                        <div class="result-value" id="dailyEarnings"></div>
-                        <div class="result-label" style="margin-top: 10px;">মাসিক আয়</div>
-                        <div class="result-value" id="monthlyEarnings"></div>
-                        <div class="result-label" style="margin-top: 10px;">বার্ষিক আয়</div>
-                        <div class="result-value" id="yearlyEarnings"></div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'youtube-thumbnail': `
-            <div class="tool-interface">
-                <h2><i class="fab fa-youtube"></i> ইউটিউব থাম্বনেইল ডাউনলোডার</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>ইউটিউব ভিডিও লিংক</label>
-                        <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
-                    </div>
-                    <button class="submit-btn" onclick="getThumbnails()">থাম্বনেইল পান</button>
-                    <div id="thumbnailPreview"></div>
-                </div>
-            </div>
-        `,
-        'word-counter': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-font"></i> ওয়ার্ড কাউন্টার</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>টেক্সট লিখুন</label>
-                        <textarea id="textInput" placeholder="এখানে লিখুন..." style="min-height: 150px;"></textarea>
-                    </div>
-                    <div class="result-box">
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                            <div>
-                                <div class="result-label">শব্দ</div>
-                                <div class="result-value" id="wordCount">০</div>
-                            </div>
-                            <div>
-                                <div class="result-label">অক্ষর</div>
-                                <div class="result-value" id="charCount">০</div>
-                            </div>
-                            <div>
-                                <div class="result-label">বাক্য</div>
-                                <div class="result-value" id="sentenceCount">০</div>
-                            </div>
-                            <div>
-                                <div class="result-label">প্যারাগ্রাফ</div>
-                                <div class="result-value" id="paraCount">০</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'password-generator': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-key"></i> পাসওয়ার্ড জেনারেটর</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>পাসওয়ার্ড দৈর্ঘ্য</label>
-                        <input type="number" id="passwordLength" value="16" min="6" max="32">
-                    </div>
-                    <button class="submit-btn" onclick="generatePassword()">পাসওয়ার্ড তৈরি করুন</button>
-                    <div id="passwordResult" class="result-box hidden">
-                        <div class="result-label">আপনার পাসওয়ার্ড</div>
-                        <div class="result-value" style="font-size: 18px; word-break: break-all;" id="generatedPassword"></div>
-                        <button class="download-btn" onclick="copyPassword()">
-                            <i class="fas fa-copy"></i> কপি করুন
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `,
-        'qr-generator': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-qrcode"></i> QR কোড জেনারেটর</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>টেক্সট বা লিংক</label>
-                        <input type="text" id="qrText" placeholder="https://example.com">
-                    </div>
-                    <button class="submit-btn" onclick="generateQRCode()">QR তৈরি করুন</button>
-                    <div id="qrPreview" class="qr-preview"></div>
-                </div>
-            </div>
-        `,
-        'unit-converter': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-exchange-alt"></i> ইউনিট কনভার্টার</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>ধরন নির্বাচন করুন</label>
-                        <select id="unitType" onchange="updateUnitOptions()">
-                            <option value="length">দৈর্ঘ্য</option>
-                            <option value="weight">ওজন</option>
-                            <option value="volume">আয়তন</option>
-                        </select>
-                    </div>
-                    <div class="input-row">
-                        <div class="form-group">
-                            <label>থেকে</label>
-                            <select id="fromUnit"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>এ</label>
-                            <select id="toUnit"></select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>মান</label>
-                        <input type="number" id="unitValue" placeholder="১">
-                    </div>
-                    <button class="submit-btn" onclick="convertUnit()">রূপান্তর করুন</button>
-                    <div id="unitResult" class="result-box hidden">
-                        <div class="result-label">ফলাফল</div>
-                        <div class="result-value" id="convertedValue"></div>
-                    </div>
-                </div>
-            </div>
-        `,
-        'temperature-converter': `
-            <div class="tool-interface">
-                <h2><i class="fas fa-thermometer-half"></i> তাপমাত্রা কনভার্টার</h2>
-                <div class="calculator-display">
-                    <div class="form-group">
-                        <label>তাপমাত্রা</label>
-                        <input type="number" id="tempValue" placeholder="০">
-                    </div>
-                    <div class="form-group">
-                        <label>থেকে</label>
-                        <select id="fromTemp">
-                            <option value="celsius">সেলসিয়াস (°C)</option>
-                            <option value="fahrenheit">ফারেনহাইট (°F)</option>
-                            <option value="kelvin">কেলভিন (K)</option>
-                        </select>
-                    </div>
-                    <button class="submit-btn" onclick="convertTemperature()">রূপান্তর করুন</button>
-                    <div id="tempResult" class="result-box">
-                        <div style="display: grid; gap: 10px;">
-                            <div>
-                                <div class="result-label">সেলসিয়াস</div>
-                                <div class="result-value" id="celsiusResult">-</div>
-                            </div>
-                            <div>
-                                <div class="result-label">ফারেনহাইট</div>
-                                <div class="result-value" id="fahrenheitResult">-</div>
-                            </div>
-                            <div>
-                                <div class="result-label">কেলভিন</div>
-                                <div class="result-value" id="kelvinResult">-</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `
-    };
-    
-    return interfaces[tool.id] || `<p>এই টুলটি শীঘ্রই আসছে...</p>`;
-}
-
-function initializeToolFunctionality(toolId) {
-    switch(toolId) {
-        case 'word-counter':
-            document.getElementById('textInput').addEventListener('input', countWords);
-            break;
-        case 'unit-converter':
-            updateUnitOptions();
-            break;
-    }
-}
-
-// ========================================
-// Tool Functions
-// ========================================
-
-function calculateProfitLoss() {
-    const cost = parseFloat(document.getElementById('costPrice').value);
-    const selling = parseFloat(document.getElementById('sellingPrice').value);
-    
-    if (!cost || !selling) {
-        showNotification('সব ফিল্ড পূরণ করুন', 'warning');
-        return;
-    }
-    
-    const difference = selling - cost;
-    const percentage = ((difference / cost) * 100).toFixed(2);
-    const type = difference >= 0 ? 'লাভ' : 'ক্ষতি';
-    
-    document.getElementById('plAmount').textContent = `${type}: ৳${Math.abs(difference).toFixed(2)}`;
-    document.getElementById('plPercentage').textContent = `${Math.abs(percentage)}%`;
-    document.getElementById('profitLossResult').classList.remove('hidden');
-}
-
-function calculatePercentage() {
-    const number = parseFloat(document.getElementById('percentNumber').value);
-    const percent = parseFloat(document.getElementById('percentValue').value);
-    
-    if (!number || !percent) {
-        showNotification('সব ফিল্ড পূরণ করুন', 'warning');
-        return;
-    }
-    
-    const result = (number * percent) / 100;
-    document.getElementById('percentAnswer').textContent = result.toFixed(2);
-    document.getElementById('percentResult').classList.remove('hidden');
-}
-
-function calculateAge() {
-    const birthDate = new Date(document.getElementById('birthDate').value);
-    if (!birthDate.getTime()) {
-        showNotification('সঠিক তারিখ দিন', 'warning');
-        return;
-    }
-    
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    
-    // Next birthday
-    let nextBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-    if (nextBirthday < today) {
-        nextBirthday.setFullYear(today.getFullYear() + 1);
-    }
-    const daysUntil = Math.ceil((nextBirthday - today) / (1000 * 60 * 60 * 24));
-    
-    document.getElementById('ageYears').textContent = `${age} বছর`;
-    document.getElementById('nextBirthday').textContent = `${daysUntil} দিন বাকি`;
-    document.getElementById('ageResult').classList.remove('hidden');
-}
-
-function calculateYouTubeEarnings() {
-    const views = parseFloat(document.getElementById('dailyViews').value);
-    const cpm = parseFloat(document.getElementById('cpmRate').value);
-    
-    if (!views || !cpm) {
-        showNotification('সব ফিল্ড পূরণ করুন', 'warning');
-        return;
-    }
-    
-    const daily = (views / 1000) * cpm;
-    const monthly = daily * 30;
-    const yearly = daily * 365;
-    
-    document.getElementById('dailyEarnings').textContent = `$${daily.toFixed(2)}`;
-    document.getElementById('monthlyEarnings').textContent = `$${monthly.toFixed(2)}`;
-    document.getElementById('yearlyEarnings').textContent = `$${yearly.toFixed(2)}`;
-    document.getElementById('earningsResult').classList.remove('hidden');
-}
-
-function getThumbnails() {
-    const url = document.getElementById('videoUrl').value;
-    const videoId = extractYouTubeID(url);
-    
-    if (!videoId) {
-        showNotification('সঠিক ইউটিউব লিংক দিন', 'warning');
-        return;
-    }
-    
-    const qualities = [
-        { name: 'Max Quality', url: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` },
-        { name: 'High Quality', url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` },
-        { name: 'Medium Quality', url: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` },
-        { name: 'Standard Quality', url: `https://img.youtube.com/vi/${videoId}/sddefault.jpg` }
-    ];
-    
-    const preview = document.getElementById('thumbnailPreview');
-    preview.innerHTML = '<div class="thumbnail-preview">';
-    
-    qualities.forEach(q => {
-        preview.innerHTML += `
-            <div class="thumbnail-item">
-                <img src="${q.url}" alt="${q.name}">
-                <a href="${q.url}" download="${videoId}-${q.name}.jpg" class="download-btn">
-                    <i class="fas fa-download"></i> ${q.name}
-                </a>
-            </div>
-        `;
-    });
-    
-    preview.innerHTML += '</div>';
-}
-
-function extractYouTubeID(url) {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] :
